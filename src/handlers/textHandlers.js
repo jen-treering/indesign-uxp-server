@@ -2,7 +2,7 @@
  * Text frame handlers
  */
 import { ScriptExecutor } from '../core/scriptExecutor.js';
-import { formatResponse, formatErrorResponse, escapeJsxString } from '../utils/stringUtils.js';
+import { formatResponse, formatErrorResponse, escapeJsxString, toSafeNumber } from '../utils/stringUtils.js';
 import { sessionManager } from '../core/sessionManager.js';
 
 export class TextHandlers {
@@ -12,25 +12,27 @@ export class TextHandlers {
     static async createTextFrame(args) {
         const {
             content,
-            x,
-            y,
-            width,
-            height,
             pageIndex = null,
-            fontSize = 12,
             fontName = 'Arial\\tRegular',
             textColor = 'Black',
             alignment = 'LEFT',
             paragraphStyle = null,
             characterStyle = null
         } = args;
+        const fontSize = toSafeNumber(args.fontSize ?? 12, 'fontSize');
 
         // H5: skip stale sessionManager validation when caller provides explicit coordinates
-        const hasAllCoords = x !== undefined && y !== undefined && width !== undefined && height !== undefined;
+        const rawX = args.x, rawY = args.y, rawW = args.width, rawH = args.height;
+        const hasAllCoords = rawX !== undefined && rawY !== undefined && rawW !== undefined && rawH !== undefined;
         const positioning = hasAllCoords
-            ? { x, y, width, height }
+            ? {
+                x: toSafeNumber(rawX, 'x'),
+                y: toSafeNumber(rawY, 'y'),
+                width: toSafeNumber(rawW, 'width'),
+                height: toSafeNumber(rawH, 'height')
+              }
             : (() => {
-                const pos = sessionManager.getCalculatedPositioning({ x, y, width, height });
+                const pos = sessionManager.getCalculatedPositioning({ x: rawX, y: rawY, width: rawW, height: rawH });
                 const validation = sessionManager.validatePositioning(pos.x, pos.y, pos.width, pos.height);
                 if (!validation.valid) {
                     if (validation.suggested) Object.assign(pos, validation.suggested);
@@ -131,13 +133,13 @@ export class TextHandlers {
      */
     static async editTextFrame(args) {
         const {
-            frameIndex,
             content,
-            fontSize,
             fontName,
             textColor,
             alignment
         } = args;
+        const frameIndex = toSafeNumber(args.frameIndex, 'frameIndex');
+        const fontSize = args.fontSize !== undefined ? toSafeNumber(args.fontSize, 'fontSize') : 0;
 
         const code = `
             if (app.documents.length === 0) {
@@ -157,7 +159,7 @@ export class TextHandlers {
                 textFrame.contents = newContent;
             }
 
-            const newFontSize = ${fontSize || 0};
+            const newFontSize = ${fontSize};
             if (newFontSize) {
                 try { textFrame.texts.item(0).pointSize = newFontSize; } catch(e) {}
             }
@@ -193,21 +195,23 @@ export class TextHandlers {
      */
     static async createTable(args) {
         const {
-            rows = 3,
-            columns = 3,
-            x,
-            y,
-            width,
-            height,
             pageIndex = null,
-            headerRows = 1,
-            headerColumns = 0
         } = args;
+        const rows = toSafeNumber(args.rows ?? 3, 'rows');
+        const columns = toSafeNumber(args.columns ?? 3, 'columns');
+        const headerRows = toSafeNumber(args.headerRows ?? 1, 'headerRows');
+        const headerColumns = toSafeNumber(args.headerColumns ?? 0, 'headerColumns');
 
-        const hasAllCoords = x !== undefined && y !== undefined && width !== undefined && height !== undefined;
+        const rawX = args.x, rawY = args.y, rawW = args.width, rawH = args.height;
+        const hasAllCoords = rawX !== undefined && rawY !== undefined && rawW !== undefined && rawH !== undefined;
         const positioning = hasAllCoords
-            ? { x, y, width, height }
-            : sessionManager.getCalculatedPositioning({ x, y, width, height });
+            ? {
+                x: toSafeNumber(rawX, 'x'),
+                y: toSafeNumber(rawY, 'y'),
+                width: toSafeNumber(rawW, 'width'),
+                height: toSafeNumber(rawH, 'height')
+              }
+            : sessionManager.getCalculatedPositioning({ x: rawX, y: rawY, width: rawW, height: rawH });
 
         const code = `
             if (app.documents.length === 0) {
@@ -265,12 +269,10 @@ export class TextHandlers {
      * Populate a table with data
      */
     static async populateTable(args) {
-        const {
-            tableIndex = 0,
-            data,
-            startRow = 0,
-            startColumn = 0
-        } = args;
+        const { data } = args;
+        const tableIndex = toSafeNumber(args.tableIndex ?? 0, 'tableIndex');
+        const startRow = toSafeNumber(args.startRow ?? 0, 'startRow');
+        const startColumn = toSafeNumber(args.startColumn ?? 0, 'startColumn');
 
         if (!data || !Array.isArray(data)) {
             return formatErrorResponse("Invalid data provided. Expected array of arrays.", "Populate Table");
@@ -337,9 +339,9 @@ export class TextHandlers {
         const {
             findText,
             replaceText,
-            caseSensitive = false,
-            wholeWord = false
         } = args;
+        const caseSensitive = !!(args.caseSensitive ?? false);
+        const wholeWord = !!(args.wholeWord ?? false);
 
         const code = `
             if (app.documents.length === 0) {
@@ -374,4 +376,4 @@ export class TextHandlers {
             formatResponse(`Find and replace completed. Items changed: ${result.count}`, "Find Replace Text") :
             formatErrorResponse(result?.error || 'Failed to find and replace', "Find Replace Text");
     }
-} 
+}

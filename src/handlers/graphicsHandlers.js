@@ -2,7 +2,7 @@
  * Graphics management handlers
  */
 import { ScriptExecutor } from '../core/scriptExecutor.js';
-import { formatResponse, formatErrorResponse, escapeJsxString } from '../utils/stringUtils.js';
+import { formatResponse, formatErrorResponse, escapeJsxString, toSafeNumber } from '../utils/stringUtils.js';
 import { sessionManager } from '../core/sessionManager.js';
 
 export class GraphicsHandlers {
@@ -11,22 +11,24 @@ export class GraphicsHandlers {
      */
     static async createRectangle(args) {
         const {
-            x,
-            y,
-            width,
-            height,
             pageIndex = null,
             fillColor,
             strokeColor,
-            strokeWidth = 1,
-            cornerRadius = 0
         } = args;
+        const strokeWidth = toSafeNumber(args.strokeWidth ?? 1, 'strokeWidth');
+        const cornerRadius = toSafeNumber(args.cornerRadius ?? 0, 'cornerRadius');
 
-        const hasAllCoords = x !== undefined && y !== undefined && width !== undefined && height !== undefined;
+        const rawX = args.x, rawY = args.y, rawW = args.width, rawH = args.height;
+        const hasAllCoords = rawX !== undefined && rawY !== undefined && rawW !== undefined && rawH !== undefined;
         const positioning = hasAllCoords
-            ? { x, y, width, height }
+            ? {
+                x: toSafeNumber(rawX, 'x'),
+                y: toSafeNumber(rawY, 'y'),
+                width: toSafeNumber(rawW, 'width'),
+                height: toSafeNumber(rawH, 'height')
+              }
             : (() => {
-                const pos = sessionManager.getCalculatedPositioning({ x, y, width, height });
+                const pos = sessionManager.getCalculatedPositioning({ x: rawX, y: rawY, width: rawW, height: rawH });
                 const validation = sessionManager.validatePositioning(pos.x, pos.y, pos.width, pos.height);
                 if (!validation.valid) {
                     if (validation.suggested) Object.assign(pos, validation.suggested);
@@ -102,21 +104,23 @@ export class GraphicsHandlers {
      */
     static async createEllipse(args) {
         const {
-            x,
-            y,
-            width,
-            height,
             pageIndex = null,
             fillColor,
             strokeColor,
-            strokeWidth = 1
         } = args;
+        const strokeWidth = toSafeNumber(args.strokeWidth ?? 1, 'strokeWidth');
 
-        const hasAllCoords = x !== undefined && y !== undefined && width !== undefined && height !== undefined;
+        const rawX = args.x, rawY = args.y, rawW = args.width, rawH = args.height;
+        const hasAllCoords = rawX !== undefined && rawY !== undefined && rawW !== undefined && rawH !== undefined;
         const positioning = hasAllCoords
-            ? { x, y, width, height }
+            ? {
+                x: toSafeNumber(rawX, 'x'),
+                y: toSafeNumber(rawY, 'y'),
+                width: toSafeNumber(rawW, 'width'),
+                height: toSafeNumber(rawH, 'height')
+              }
             : (() => {
-                const pos = sessionManager.getCalculatedPositioning({ x, y, width, height });
+                const pos = sessionManager.getCalculatedPositioning({ x: rawX, y: rawY, width: rawW, height: rawH });
                 const validation = sessionManager.validatePositioning(pos.x, pos.y, pos.width, pos.height);
                 if (!validation.valid) {
                     if (validation.suggested) Object.assign(pos, validation.suggested);
@@ -183,21 +187,23 @@ export class GraphicsHandlers {
      */
     static async createPolygon(args) {
         const {
-            x,
-            y,
-            width,
-            height,
             pageIndex = null,
-            sides = 6,
             fillColor,
             strokeColor,
-            strokeWidth = 1
         } = args;
+        const sides = toSafeNumber(args.sides ?? 6, 'sides');
+        const strokeWidth = toSafeNumber(args.strokeWidth ?? 1, 'strokeWidth');
 
-        const hasAllCoords = x !== undefined && y !== undefined && width !== undefined && height !== undefined;
+        const rawX = args.x, rawY = args.y, rawW = args.width, rawH = args.height;
+        const hasAllCoords = rawX !== undefined && rawY !== undefined && rawW !== undefined && rawH !== undefined;
         const positioning = hasAllCoords
-            ? { x, y, width, height }
-            : sessionManager.getCalculatedPositioning({ x, y, width, height });
+            ? {
+                x: toSafeNumber(rawX, 'x'),
+                y: toSafeNumber(rawY, 'y'),
+                width: toSafeNumber(rawW, 'width'),
+                height: toSafeNumber(rawH, 'height')
+              }
+            : sessionManager.getCalculatedPositioning({ x: rawX, y: rawY, width: rawW, height: rawH });
 
         const code = `
             if (app.documents.length === 0) {
@@ -260,18 +266,20 @@ export class GraphicsHandlers {
     static async placeImage(args) {
         const {
             filePath,
-            x,
-            y,
-            width,
-            height,
             pageIndex = null,
             applyObjectStyle = ''
         } = args;
 
-        const hasAllCoords = x !== undefined && y !== undefined && width !== undefined && height !== undefined;
+        const rawX = args.x, rawY = args.y, rawW = args.width, rawH = args.height;
+        const hasAllCoords = rawX !== undefined && rawY !== undefined && rawW !== undefined && rawH !== undefined;
         const positioning = hasAllCoords
-            ? { x, y, width, height }
-            : sessionManager.getCalculatedPositioning({ x, y, width, height });
+            ? {
+                x: toSafeNumber(rawX, 'x'),
+                y: toSafeNumber(rawY, 'y'),
+                width: toSafeNumber(rawW, 'width'),
+                height: toSafeNumber(rawH, 'height')
+              }
+            : sessionManager.getCalculatedPositioning({ x: rawX, y: rawY, width: rawW, height: rawH });
 
         const code = `
             if (app.documents.length === 0) {
@@ -332,10 +340,10 @@ export class GraphicsHandlers {
             name,
             fillColor,
             strokeColor,
-            strokeWeight = 1,
-            cornerRadius = 0,
-            transparency = 100
         } = args;
+        const strokeWeight = toSafeNumber(args.strokeWeight ?? 1, 'strokeWeight');
+        const cornerRadius = toSafeNumber(args.cornerRadius ?? 0, 'cornerRadius');
+        const transparency = toSafeNumber(args.transparency ?? 100, 'transparency');
 
         const code = `
             if (app.documents.length === 0) {
@@ -429,8 +437,8 @@ export class GraphicsHandlers {
         const {
             styleName,
             itemType = 'rectangle',
-            itemIndex = 0
         } = args;
+        const itemIndex = toSafeNumber(args.itemIndex ?? 0, 'itemIndex');
 
         const code = `
             if (app.documents.length === 0) {
@@ -479,7 +487,7 @@ export class GraphicsHandlers {
      * Get image information
      */
     static async getImageInfo(args) {
-        const { itemIndex = 0 } = args;
+        const itemIndex = toSafeNumber(args.itemIndex ?? 0, 'itemIndex');
 
         const code = `
             if (app.documents.length === 0) {
@@ -544,4 +552,4 @@ export class GraphicsHandlers {
         }
         return formatErrorResponse(result?.error || 'Failed to get image info', "Get Image Info");
     }
-} 
+}

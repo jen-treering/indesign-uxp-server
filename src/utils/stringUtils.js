@@ -3,6 +3,20 @@
  */
 
 /**
+ * Validates that a value is a finite number and returns it as a JS number.
+ * Throws if the value is non-numeric, NaN, or infinite, preventing code injection
+ * when values are interpolated bare into UXP code strings.
+ * @param {any} val - The value to validate.
+ * @param {string} name - Parameter name for error messages.
+ * @returns {number} The validated finite number.
+ */
+export function toSafeNumber(val, name) {
+    const n = Number(val);
+    if (!Number.isFinite(n)) throw new Error(`${name} must be a finite number`);
+    return n;
+}
+
+/**
  * Escapes backslashes, double quotes, and control characters for JSX/AppleScript.
  * @param {string} str - The string to escape.
  * @returns {string} The escaped string.

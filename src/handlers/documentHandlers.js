@@ -4,7 +4,7 @@
  */
 import { readFileSync } from 'fs';
 import { ScriptExecutor } from '../core/scriptExecutor.js';
-import { formatResponse, formatErrorResponse } from '../utils/stringUtils.js';
+import { formatResponse, formatErrorResponse, toSafeNumber } from '../utils/stringUtils.js';
 import { sessionManager } from '../core/sessionManager.js';
 
 export class DocumentHandlers {
@@ -291,7 +291,8 @@ export class DocumentHandlers {
      * Zoom to fit page in view
      */
     static async zoomToPage(args) {
-        const { pageIndex, zoomLevel = 100 } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
+        const zoomLevel = toSafeNumber(args.zoomLevel ?? 100, 'zoomLevel');
 
         const code = `
             if (app.documents.length === 0) {
@@ -316,7 +317,10 @@ export class DocumentHandlers {
      * Perform data merge operation
      */
     static async dataMerge(args) {
-        const { dataSource, targetPage = 0, createNewPages = false, removeUnusedPages = false } = args;
+        const { dataSource } = args;
+        const targetPage = toSafeNumber(args.targetPage ?? 0, 'targetPage');
+        const createNewPages = !!(args.createNewPages ?? false);
+        const removeUnusedPages = !!(args.removeUnusedPages ?? false);
 
         // H7: Pre-validate CSV fields against document template placeholders
 
@@ -900,7 +904,8 @@ export class DocumentHandlers {
      * Create a new section in the document
      */
     static async createDocumentSection(args) {
-        const { startPage, sectionPrefix, startNumber = 1, numberingStyle = 'ARABIC' } = args;
+        const { sectionPrefix, startNumber = 1, numberingStyle = 'ARABIC' } = args;
+        const startPage = toSafeNumber(args.startPage, 'startPage');
 
         const code = `
             if (app.documents.length === 0) {

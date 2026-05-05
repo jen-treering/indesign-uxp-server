@@ -2,14 +2,15 @@
  * Master spread management handlers
  */
 import { ScriptExecutor } from '../core/scriptExecutor.js';
-import { formatResponse, formatErrorResponse } from '../utils/stringUtils.js';
+import { formatResponse, formatErrorResponse, toSafeNumber } from '../utils/stringUtils.js';
 
 export class MasterSpreadHandlers {
     /**
      * Create a master spread
      */
     static async createMasterSpread(args) {
-        const { name, namePrefix, baseName, showMasterItems = true } = args;
+        const { name, namePrefix, baseName } = args;
+        const showMasterItems = !!(args.showMasterItems ?? true);
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -67,7 +68,7 @@ export class MasterSpreadHandlers {
      * Delete a master spread
      */
     static async deleteMasterSpread(args) {
-        const { masterIndex } = args;
+        const masterIndex = toSafeNumber(args.masterIndex, 'masterIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -89,7 +90,11 @@ export class MasterSpreadHandlers {
      * Duplicate a master spread
      */
     static async duplicateMasterSpread(args) {
-        const { masterIndex, position = 'AT_END', referenceMaster } = args;
+        const { position = 'AT_END' } = args;
+        const masterIndex = toSafeNumber(args.masterIndex, 'masterIndex');
+        const referenceMaster = args.referenceMaster !== undefined
+            ? toSafeNumber(args.referenceMaster, 'referenceMaster')
+            : undefined;
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -103,10 +108,10 @@ export class MasterSpreadHandlers {
                 newMasterSpread = masterSpread.duplicate(LocationOptions.atEnd);
             } else if (pos === 'AT_BEGINNING') {
                 newMasterSpread = masterSpread.duplicate(LocationOptions.atBeginning);
-            } else if (pos === 'BEFORE' && ${referenceMaster} !== undefined) {
-                newMasterSpread = masterSpread.duplicate(LocationOptions.before, doc.masterSpreads.item(${referenceMaster}));
-            } else if (pos === 'AFTER' && ${referenceMaster} !== undefined) {
-                newMasterSpread = masterSpread.duplicate(LocationOptions.after, doc.masterSpreads.item(${referenceMaster}));
+            } else if (pos === 'BEFORE' && ${referenceMaster !== undefined ? referenceMaster : 'undefined'} !== undefined) {
+                newMasterSpread = masterSpread.duplicate(LocationOptions.before, doc.masterSpreads.item(${referenceMaster !== undefined ? referenceMaster : 0}));
+            } else if (pos === 'AFTER' && ${referenceMaster !== undefined ? referenceMaster : 'undefined'} !== undefined) {
+                newMasterSpread = masterSpread.duplicate(LocationOptions.after, doc.masterSpreads.item(${referenceMaster !== undefined ? referenceMaster : 0}));
             } else {
                 newMasterSpread = masterSpread.duplicate(LocationOptions.atEnd);
             }
@@ -175,15 +180,15 @@ export class MasterSpreadHandlers {
         const {
             masterName,
             content,
-            x,
-            y,
-            width,
-            height,
-            fontSize = 12,
             fontFamily = "Arial",
             fontStyle = "Normal",
             alignment = "LEFT_ALIGN"
         } = args;
+        const x = toSafeNumber(args.x, 'x');
+        const y = toSafeNumber(args.y, 'y');
+        const width = toSafeNumber(args.width, 'width');
+        const height = toSafeNumber(args.height, 'height');
+        const fontSize = toSafeNumber(args.fontSize ?? 12, 'fontSize');
 
         const alignmentMap = {
             LEFT_ALIGN: 'leftAlign',
@@ -226,14 +231,14 @@ export class MasterSpreadHandlers {
     static async createMasterRectangle(args) {
         const {
             masterName,
-            x,
-            y,
-            width,
-            height,
             fillColor = "None",
             strokeColor = "Black",
-            strokeWeight = 1
         } = args;
+        const x = toSafeNumber(args.x, 'x');
+        const y = toSafeNumber(args.y, 'y');
+        const width = toSafeNumber(args.width, 'width');
+        const height = toSafeNumber(args.height, 'height');
+        const strokeWeight = toSafeNumber(args.strokeWeight ?? 1, 'strokeWeight');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -265,21 +270,21 @@ export class MasterSpreadHandlers {
     static async createMasterGuides(args) {
         const {
             masterName,
-            numberOfRows = 0,
-            numberOfColumns = 0,
-            rowGutter,
-            columnGutter,
             guideColor = '[0, 0, 255]',
-            fitMargins = false,
-            removeExisting = false
         } = args;
+        const numberOfRows = toSafeNumber(args.numberOfRows ?? 0, 'numberOfRows');
+        const numberOfColumns = toSafeNumber(args.numberOfColumns ?? 0, 'numberOfColumns');
+        const rowGutter = args.rowGutter !== undefined ? toSafeNumber(args.rowGutter, 'rowGutter') : undefined;
+        const columnGutter = args.columnGutter !== undefined ? toSafeNumber(args.columnGutter, 'columnGutter') : undefined;
+        const fitMargins = !!(args.fitMargins ?? false);
+        const removeExisting = !!(args.removeExisting ?? false);
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
             const doc = app.activeDocument;
             const masterSpread = doc.masterSpreads.itemByName(${JSON.stringify(masterName)});
             if (!masterSpread.isValid) return { success: false, error: 'Master spread not found: ' + ${JSON.stringify(masterName)} };
-            masterSpread.createGuides(${numberOfRows}, ${numberOfColumns}, ${JSON.stringify(rowGutter || '')}, ${JSON.stringify(columnGutter || '')}, ${guideColor}, ${fitMargins}, ${removeExisting});
+            masterSpread.createGuides(${numberOfRows}, ${numberOfColumns}, ${JSON.stringify(rowGutter !== undefined ? rowGutter : '')}, ${JSON.stringify(columnGutter !== undefined ? columnGutter : '')}, ${guideColor}, ${fitMargins}, ${removeExisting});
             return { success: true, masterName: masterSpread.name, rows: ${numberOfRows}, columns: ${numberOfColumns} };
         `;
 
@@ -293,7 +298,7 @@ export class MasterSpreadHandlers {
      * Get master spread information
      */
     static async getMasterSpreadInfo(args) {
-        const { masterIndex } = args;
+        const masterIndex = toSafeNumber(args.masterIndex, 'masterIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };

@@ -2,7 +2,7 @@
  * Style management handlers
  */
 import { ScriptExecutor } from '../core/scriptExecutor.js';
-import { formatResponse, formatErrorResponse } from '../utils/stringUtils.js';
+import { formatResponse, formatErrorResponse, toSafeNumber } from '../utils/stringUtils.js';
 import { sessionManager } from '../core/sessionManager.js';
 
 export class StyleHandlers {
@@ -13,13 +13,13 @@ export class StyleHandlers {
         const {
             name,
             fontFamily = 'Arial\tRegular',
-            fontSize = 12,
             textColor = 'Black',
             alignment = 'LEFT_ALIGN',
-            leading,
-            spaceBefore,
-            spaceAfter
         } = args;
+        const fontSize = toSafeNumber(args.fontSize ?? 12, 'fontSize');
+        const leading = args.leading !== undefined ? toSafeNumber(args.leading, 'leading') : undefined;
+        const spaceBefore = args.spaceBefore !== undefined ? toSafeNumber(args.spaceBefore, 'spaceBefore') : undefined;
+        const spaceAfter = args.spaceAfter !== undefined ? toSafeNumber(args.spaceAfter, 'spaceAfter') : undefined;
 
         const code = `
             const { Justification } = require('indesign');
@@ -69,12 +69,12 @@ export class StyleHandlers {
         const {
             name,
             fontFamily = 'Arial\tRegular',
-            fontSize = 12,
             textColor = 'Black',
             bold = false,
             italic = false,
-            underline = false
         } = args;
+        const fontSize = toSafeNumber(args.fontSize ?? 12, 'fontSize');
+        const underline = !!(args.underline ?? false);
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -115,7 +115,8 @@ export class StyleHandlers {
      * Apply a paragraph style to text
      */
     static async applyParagraphStyle(args) {
-        const { styleName, frameIndex = 0 } = args;
+        const { styleName } = args;
+        const frameIndex = toSafeNumber(args.frameIndex ?? 0, 'frameIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -139,7 +140,10 @@ export class StyleHandlers {
      * Apply a character style to text
      */
     static async applyCharacterStyle(args) {
-        const { styleName, frameIndex = 0, startIndex = 0, endIndex = -1 } = args;
+        const { styleName } = args;
+        const frameIndex = toSafeNumber(args.frameIndex ?? 0, 'frameIndex');
+        const startIndex = toSafeNumber(args.startIndex ?? 0, 'startIndex');
+        const endIndex = toSafeNumber(args.endIndex ?? -1, 'endIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -233,10 +237,10 @@ export class StyleHandlers {
         const {
             name,
             colorType = 'PROCESS',
-            red,
-            green,
-            blue
         } = args;
+        const red = toSafeNumber(args.red, 'red');
+        const green = toSafeNumber(args.green, 'green');
+        const blue = toSafeNumber(args.blue, 'blue');
 
         // Convert RGB to CMYK using proper formula (done in Node.js, values embedded in UXP code)
         const r = red / 255;
@@ -307,7 +311,8 @@ export class StyleHandlers {
      * Apply a color to text or graphics
      */
     static async applyColor(args) {
-        const { colorName, targetType = 'text', frameIndex = 0 } = args;
+        const { colorName, targetType = 'text' } = args;
+        const frameIndex = toSafeNumber(args.frameIndex ?? 0, 'frameIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };

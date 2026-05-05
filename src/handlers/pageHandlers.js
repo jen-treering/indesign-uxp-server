@@ -2,14 +2,15 @@
  * Page management handlers
  */
 import { ScriptExecutor } from '../core/scriptExecutor.js';
-import { formatResponse, formatErrorResponse } from '../utils/stringUtils.js';
+import { formatResponse, formatErrorResponse, toSafeNumber } from '../utils/stringUtils.js';
 
 export class PageHandlers {
     /**
      * Add a new page to the document
      */
     static async addPage(args) {
-        const { position = 'AT_END', referencePage = 0 } = args;
+        const { position = 'AT_END' } = args;
+        const referencePage = toSafeNumber(args.referencePage ?? 0, 'referencePage');
 
         const code = `
             const { LocationOptions } = require('indesign');
@@ -37,7 +38,7 @@ export class PageHandlers {
      * Get detailed information about a specific page
      */
     static async getPageInfo(args) {
-        const { pageIndex } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -68,7 +69,7 @@ export class PageHandlers {
      * Navigate to a specific page
      */
     static async navigateToPage(args) {
-        const { pageIndex } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -88,7 +89,7 @@ export class PageHandlers {
      * Delete a specific page from the document
      */
     static async deletePage(args) {
-        const { pageIndex } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -108,7 +109,7 @@ export class PageHandlers {
      * Duplicate a specific page
      */
     static async duplicatePage(args) {
-        const { pageIndex } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -129,7 +130,8 @@ export class PageHandlers {
      * Move a page to a different position
      */
     static async movePage(args) {
-        const { pageIndex, newPosition } = args;
+        const { newPosition } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
 
         const code = `
             const { LocationOptions } = require('indesign');
@@ -186,7 +188,9 @@ export class PageHandlers {
      * Set properties for a page
      */
     static async setPageProperties(args) {
-        const { pageIndex, label, pageColor, optionalPage, layoutRule, snapshotBlendingMode, appliedTrapPreset } = args;
+        const { label, pageColor, layoutRule, snapshotBlendingMode, appliedTrapPreset } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
+        const optionalPage = args.optionalPage !== undefined ? !!args.optionalPage : undefined;
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -212,11 +216,17 @@ export class PageHandlers {
      * Adjust page layout with new dimensions and margins
      */
     static async adjustPageLayout(args) {
-        const {
-            pageIndex, width, height,
-            bleedInside, bleedTop, bleedOutside, bleedBottom,
-            leftMargin, topMargin, rightMargin, bottomMargin
-        } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
+        const width = args.width !== undefined ? toSafeNumber(args.width, 'width') : undefined;
+        const height = args.height !== undefined ? toSafeNumber(args.height, 'height') : undefined;
+        const bleedInside = args.bleedInside !== undefined ? toSafeNumber(args.bleedInside, 'bleedInside') : undefined;
+        const bleedTop = args.bleedTop !== undefined ? toSafeNumber(args.bleedTop, 'bleedTop') : undefined;
+        const bleedOutside = args.bleedOutside !== undefined ? toSafeNumber(args.bleedOutside, 'bleedOutside') : undefined;
+        const bleedBottom = args.bleedBottom !== undefined ? toSafeNumber(args.bleedBottom, 'bleedBottom') : undefined;
+        const leftMargin = args.leftMargin !== undefined ? toSafeNumber(args.leftMargin, 'leftMargin') : undefined;
+        const topMargin = args.topMargin !== undefined ? toSafeNumber(args.topMargin, 'topMargin') : undefined;
+        const rightMargin = args.rightMargin !== undefined ? toSafeNumber(args.rightMargin, 'rightMargin') : undefined;
+        const bottomMargin = args.bottomMargin !== undefined ? toSafeNumber(args.bottomMargin, 'bottomMargin') : undefined;
 
         const code = `
             const { CoordinateSpaces, AnchorPoint, ResizeMethods } = require('indesign');
@@ -247,11 +257,13 @@ export class PageHandlers {
      */
     static async resizePage(args) {
         const {
-            pageIndex, width, height,
             resizeMethod = 'replacingCurrentDimensionsWith',
             anchorPoint = 'centerAnchor',
             coordinateSpace = 'pasteboardCoordinates'
         } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
+        const width = toSafeNumber(args.width, 'width');
+        const height = toSafeNumber(args.height, 'height');
 
         const code = `
             const { CoordinateSpaces, AnchorPoint, ResizeMethods } = require('indesign');
@@ -279,7 +291,12 @@ export class PageHandlers {
      * Place a file on a page
      */
     static async placeFileOnPage(args) {
-        const { pageIndex, filePath, x = 10, y = 10, layerName, showingOptions = false, autoflowing = false } = args;
+        const { filePath, layerName } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
+        const x = toSafeNumber(args.x ?? 10, 'x');
+        const y = toSafeNumber(args.y ?? 10, 'y');
+        const showingOptions = !!(args.showingOptions ?? false);
+        const autoflowing = !!(args.autoflowing ?? false);
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -301,7 +318,11 @@ export class PageHandlers {
      * Place XML content on a page
      */
     static async placeXmlOnPage(args) {
-        const { pageIndex, xmlElementName, x = 10, y = 10, autoflowing = false } = args;
+        const { xmlElementName } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
+        const x = toSafeNumber(args.x ?? 10, 'x');
+        const y = toSafeNumber(args.y ?? 10, 'y');
+        const autoflowing = !!(args.autoflowing ?? false);
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -323,7 +344,7 @@ export class PageHandlers {
      * Create a snapshot of the current page layout
      */
     static async snapshotPageLayout(args) {
-        const { pageIndex } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -344,7 +365,7 @@ export class PageHandlers {
      * Delete the layout snapshot for a page
      */
     static async deletePageLayoutSnapshot(args) {
-        const { pageIndex } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -365,7 +386,7 @@ export class PageHandlers {
      * Delete all layout snapshots for a page
      */
     static async deleteAllPageLayoutSnapshots(args) {
-        const { pageIndex } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -386,7 +407,12 @@ export class PageHandlers {
      * Reframe (resize) a page
      */
     static async reframePage(args) {
-        const { pageIndex, x1, y1, x2, y2, coordinateSpace = 'pasteboardCoordinates' } = args;
+        const { coordinateSpace = 'pasteboardCoordinates' } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
+        const x1 = toSafeNumber(args.x1, 'x1');
+        const y1 = toSafeNumber(args.y1, 'y1');
+        const x2 = toSafeNumber(args.x2, 'x2');
+        const y2 = toSafeNumber(args.y2, 'y2');
 
         const code = `
             const { CoordinateSpaces } = require('indesign');
@@ -408,17 +434,14 @@ export class PageHandlers {
      * Create guides on a page
      */
     static async createPageGuides(args) {
-        const {
-            pageIndex,
-            numberOfRows = 0,
-            numberOfColumns = 0,
-            rowGutter = 5,
-            columnGutter = 5,
-            guideColor = 'blue',
-            fitMargins = true,
-            removeExisting = false,
-            layerName
-        } = args;
+        const { guideColor = 'blue', layerName } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
+        const numberOfRows = toSafeNumber(args.numberOfRows ?? 0, 'numberOfRows');
+        const numberOfColumns = toSafeNumber(args.numberOfColumns ?? 0, 'numberOfColumns');
+        const rowGutter = toSafeNumber(args.rowGutter ?? 5, 'rowGutter');
+        const columnGutter = toSafeNumber(args.columnGutter ?? 5, 'columnGutter');
+        const fitMargins = !!(args.fitMargins ?? true);
+        const removeExisting = !!(args.removeExisting ?? false);
 
         const code = `
             const { GuideColor } = require('indesign');
@@ -443,7 +466,8 @@ export class PageHandlers {
      * Select a page
      */
     static async selectPage(args) {
-        const { pageIndex, selectionMode = 'replaceWith' } = args;
+        const { selectionMode = 'replaceWith' } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
 
         const code = `
             const { SelectionOptions } = require('indesign');
@@ -465,7 +489,7 @@ export class PageHandlers {
      * Get a summary of content on a page
      */
     static async getPageContentSummary(args) {
-        const { pageIndex } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -494,7 +518,9 @@ export class PageHandlers {
      * Set page background by creating a full-page rectangle
      */
     static async setPageBackground(args) {
-        const { pageIndex = 0, backgroundColor = 'White', opacity = 100 } = args;
+        const { backgroundColor = 'White' } = args;
+        const pageIndex = toSafeNumber(args.pageIndex ?? 0, 'pageIndex');
+        const opacity = toSafeNumber(args.opacity ?? 100, 'opacity');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };

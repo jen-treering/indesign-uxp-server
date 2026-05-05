@@ -2,14 +2,14 @@
  * Group management handlers
  */
 import { ScriptExecutor } from '../core/scriptExecutor.js';
-import { formatResponse, formatErrorResponse } from '../utils/stringUtils.js';
+import { formatResponse, formatErrorResponse, toSafeNumber } from '../utils/stringUtils.js';
 
 export class GroupHandlers {
     /**
      * Create a group from selected items
      */
     static async createGroup(args) {
-        const { pageIndex } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -42,7 +42,8 @@ export class GroupHandlers {
      * Create a group from specific page items
      */
     static async createGroupFromItems(args) {
-        const { pageIndex, itemIndices } = args;
+        const { itemIndices } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -91,7 +92,8 @@ export class GroupHandlers {
      * Ungroup a group
      */
     static async ungroup(args) {
-        const { pageIndex, groupIndex } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
+        const groupIndex = toSafeNumber(args.groupIndex, 'groupIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -125,7 +127,8 @@ export class GroupHandlers {
      * Get group information
      */
     static async getGroupInfo(args) {
-        const { pageIndex, groupIndex } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
+        const groupIndex = toSafeNumber(args.groupIndex, 'groupIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -170,7 +173,9 @@ export class GroupHandlers {
      * Add item to group
      */
     static async addItemToGroup(args) {
-        const { pageIndex, groupIndex, itemIndex } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
+        const groupIndex = toSafeNumber(args.groupIndex, 'groupIndex');
+        const itemIndex = toSafeNumber(args.itemIndex, 'itemIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -204,7 +209,9 @@ export class GroupHandlers {
      * Remove item from group
      */
     static async removeItemFromGroup(args) {
-        const { pageIndex, groupIndex, itemIndex } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
+        const groupIndex = toSafeNumber(args.groupIndex, 'groupIndex');
+        const itemIndex = toSafeNumber(args.itemIndex, 'itemIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -241,7 +248,7 @@ export class GroupHandlers {
      * List all groups on a page
      */
     static async listGroups(args) {
-        const { pageIndex } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -282,7 +289,11 @@ export class GroupHandlers {
      * Set group properties
      */
     static async setGroupProperties(args) {
-        const { pageIndex, groupIndex, visible, locked, name } = args;
+        const { name } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
+        const groupIndex = toSafeNumber(args.groupIndex, 'groupIndex');
+        const visible = args.visible !== undefined ? !!args.visible : undefined;
+        const locked = args.locked !== undefined ? !!args.locked : undefined;
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -296,8 +307,8 @@ export class GroupHandlers {
                 isGroup = typeof group.pageItems !== 'undefined' || group.constructor?.name === 'Group';
             } catch(e) {}
             if (!isGroup) return { success: false, error: 'Selected item is not a group' };
-            if (${visible} !== null && ${visible} !== undefined) group.visible = ${visible};
-            if (${locked} !== null && ${locked} !== undefined) group.locked = ${locked};
+            ${visible !== undefined ? `group.visible = ${visible};` : ''}
+            ${locked !== undefined ? `group.locked = ${locked};` : ''}
             if (${JSON.stringify(name)} !== null && ${JSON.stringify(name)} !== undefined) group.name = ${JSON.stringify(name)};
             return { success: true, id: group.id, name: group.name, visible: group.visible, locked: group.locked };
         `;

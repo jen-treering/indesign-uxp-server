@@ -2,14 +2,15 @@
  * PageItem management handlers
  */
 import { ScriptExecutor } from '../core/scriptExecutor.js';
-import { formatResponse, formatErrorResponse } from '../utils/stringUtils.js';
+import { formatResponse, formatErrorResponse, toSafeNumber } from '../utils/stringUtils.js';
 
 export class PageItemHandlers {
     /**
      * Get information about a page item
      */
     static async getPageItemInfo(args) {
-        const { pageIndex, itemIndex } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
+        const itemIndex = toSafeNumber(args.itemIndex, 'itemIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -50,7 +51,9 @@ export class PageItemHandlers {
      * Select a page item
      */
     static async selectPageItem(args) {
-        const { pageIndex, itemIndex, existingSelection = 'REPLACE_WITH' } = args;
+        const { existingSelection = 'REPLACE_WITH' } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
+        const itemIndex = toSafeNumber(args.itemIndex, 'itemIndex');
 
         const selectionMap = {
             REPLACE_WITH: 'replaceWith',
@@ -80,7 +83,10 @@ export class PageItemHandlers {
      * Move a page item
      */
     static async movePageItem(args) {
-        const { pageIndex, itemIndex, x, y } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
+        const itemIndex = toSafeNumber(args.itemIndex, 'itemIndex');
+        const x = toSafeNumber(args.x, 'x');
+        const y = toSafeNumber(args.y, 'y');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -103,7 +109,11 @@ export class PageItemHandlers {
      * Resize a page item
      */
     static async resizePageItem(args) {
-        const { pageIndex, itemIndex, width, height, anchorPoint = 'CENTER_ANCHOR' } = args;
+        const { anchorPoint = 'CENTER_ANCHOR' } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
+        const itemIndex = toSafeNumber(args.itemIndex, 'itemIndex');
+        const width = toSafeNumber(args.width, 'width');
+        const height = toSafeNumber(args.height, 'height');
 
         const anchorMap = {
             CENTER_ANCHOR: 'centerAnchor',
@@ -140,7 +150,12 @@ export class PageItemHandlers {
      * Set page item properties
      */
     static async setPageItemProperties(args) {
-        const { pageIndex, itemIndex, fillColor, strokeColor, strokeWeight, visible, locked } = args;
+        const { fillColor, strokeColor } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
+        const itemIndex = toSafeNumber(args.itemIndex, 'itemIndex');
+        const strokeWeight = args.strokeWeight !== undefined ? toSafeNumber(args.strokeWeight, 'strokeWeight') : undefined;
+        const visible = args.visible !== undefined ? !!args.visible : undefined;
+        const locked = args.locked !== undefined ? !!args.locked : undefined;
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -155,15 +170,9 @@ export class PageItemHandlers {
             if (${JSON.stringify(strokeColor)} !== null && ${JSON.stringify(strokeColor)} !== undefined) {
                 try { item.strokeColor = doc.colors.itemByName(${JSON.stringify(strokeColor)}); } catch(e) {}
             }
-            if (${strokeWeight} !== null && ${strokeWeight} !== undefined) {
-                item.strokeWeight = ${strokeWeight};
-            }
-            if (${visible} !== null && ${visible} !== undefined) {
-                item.visible = ${visible};
-            }
-            if (${locked} !== null && ${locked} !== undefined) {
-                item.locked = ${locked};
-            }
+            ${strokeWeight !== undefined ? `item.strokeWeight = ${strokeWeight};` : ''}
+            ${visible !== undefined ? `item.visible = ${visible};` : ''}
+            ${locked !== undefined ? `item.locked = ${locked};` : ''}
             return { success: true, id: item.id };
         `;
 
@@ -177,7 +186,10 @@ export class PageItemHandlers {
      * Duplicate a page item
      */
     static async duplicatePageItem(args) {
-        const { pageIndex, itemIndex, x, y } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
+        const itemIndex = toSafeNumber(args.itemIndex, 'itemIndex');
+        const x = toSafeNumber(args.x, 'x');
+        const y = toSafeNumber(args.y, 'y');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -201,7 +213,8 @@ export class PageItemHandlers {
      * Delete a page item
      */
     static async deletePageItem(args) {
-        const { pageIndex, itemIndex } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
+        const itemIndex = toSafeNumber(args.itemIndex, 'itemIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
@@ -225,7 +238,7 @@ export class PageItemHandlers {
      * List all page items on a page
      */
     static async listPageItems(args) {
-        const { pageIndex } = args;
+        const pageIndex = toSafeNumber(args.pageIndex, 'pageIndex');
 
         const code = `
             if (app.documents.length === 0) return { success: false, error: 'No document open' };
